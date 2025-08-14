@@ -161,7 +161,7 @@
 <script>
   // ====== Config ======
   const PAGE_SIZE = 24;
-  const FULL_RENDER_LIMIT = Infinity; // mostra TODOS os números de página
+  const FULL_RENDER_LIMIT = 12; // mostra os números de página
 
   // ====== Storage ======
   const LS_KEY = 'mbiblio_state_v1';
@@ -325,7 +325,7 @@
     const totalPages = Math.max(1, Math.ceil(total / size));
     if (totalPages <= 1) { container.style.display='none'; return; }
     container.style.display='flex';
-
+  
     const addBtn = (label, p, {disabled=false,current=false,aria='' }={})=>{
       const b = document.createElement('button');
       b.type='button';
@@ -337,9 +337,43 @@
       if (!current && !disabled) b.addEventListener('click', ()=> goToPage(p));
       container.appendChild(b);
     };
-
+    const addEllipsis = ()=>{
+      const s=document.createElement('span');
+      s.className='page-ellipsis';
+      s.textContent='…';
+      container.appendChild(s);
+    };
+  
+    // Anterior
     addBtn('‹ Anterior', Math.max(1,page-1), { disabled: page===1, aria:'Página anterior' });
-    for (let i=1;i<=totalPages;i++) addBtn(String(i), i, { current: i===page, aria:`Ir para página ${i}` });
+  
+    if (totalPages <= FULL_RENDER_LIMIT){
+      // poucas páginas: mostra tudo
+      for (let i=1;i<=totalPages;i++){
+        addBtn(String(i), i, { current: i===page, aria:`Ir para página ${i}` });
+      }
+    } else {
+      // muitas páginas: usa reticências
+      addBtn('1', 1, { current: page===1 });
+  
+      // reticências à esquerda?
+      if (page > 3) addEllipsis();
+  
+      // janela central (2 antes e 2 depois)
+      const start = Math.max(2, page-2);
+      const end   = Math.min(totalPages-1, page+2);
+      for (let i=start;i<=end;i++){
+        addBtn(String(i), i, { current: i===page });
+      }
+  
+      // reticências à direita?
+      if (page < totalPages-2) addEllipsis();
+  
+      // última página
+      addBtn(String(totalPages), totalPages, { current: page===totalPages });
+    }
+  
+    // Próxima
     addBtn('Próxima ›', Math.min(totalPages,page+1), { disabled: page===totalPages, aria:'Próxima página' });
   }
 
