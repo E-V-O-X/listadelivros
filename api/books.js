@@ -1,25 +1,29 @@
 // /api/books.js
 module.exports = async (req, res) => {
   try {
-    const { q, lang, orderBy = 'relevance', startIndex = '0', maxResults = '24' } = req.query || {};
+    const {
+      q, lang, orderBy = 'relevance',
+      startIndex = '0', maxResults = '24',
+      country = 'BR' // padrão Brasil
+    } = req.query || {};
+
     if (!q) return res.status(400).json({ error: 'Parâmetro q é obrigatório' });
 
     const apiKey = process.env.GOOGLE_BOOKS_KEY;
     if (!apiKey) return res.status(500).json({ error: 'GOOGLE_BOOKS_KEY não configurada' });
 
     const params = new URLSearchParams({
-      q,
-      orderBy,
-      printType: 'books',
-      startIndex,
-      maxResults,
-      key: apiKey,
+      q, orderBy, printType: 'books', startIndex, maxResults, key: apiKey, country
     });
     if (lang) params.set('langRestrict', lang);
 
     const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`;
     const r = await fetch(url);
     const data = await r.json();
+
+    if (!r.ok) {
+      return res.status(r.status).json({ error: data?.error?.message || 'Erro Google Books', status: r.status });
+    }
 
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
     return res.status(200).json(data);
