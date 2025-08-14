@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Minhas Listas — Minha Biblioteca</title>
+  <style>
+    :root{
+      --bg:#0b1210;--card:#101a17;--muted:#95b5a3;--text:#e9f4ee;--brand:#36c077;--brand-2:#2aa866;--brand-3:#1c7b4b;--chip:#183126;--border:#254236;--shadow:0 10px 30px rgba(0,0,0,.35)
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:linear-gradient(120deg,#07100c,#0d1513 30%,#07100c);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
+    a{color:var(--brand);text-decoration:none}
+    header{position:sticky;top:0;z-index:5;background:rgba(11,18,16,.75);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    h1{margin:0;font-size:22px}
+    .btn{appearance:none;border:none;cursor:pointer;border-radius:10px;background:var(--brand);color:#052313;font-weight:700;padding:10px 14px;box-shadow:var(--shadow);transition:transform .06s ease, filter .2s}
+    .btn:hover{filter:brightness(1.05)}
+    .btn:active{transform:translateY(1px)}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+    main{padding:22px}
+    section{margin-bottom:28px}
+    h2{font-size:18px;margin:0 0 12px}
+    .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+    .thumb{aspect-ratio:3/4;background:#0e1915;display:flex;align-items:center;justify-content:center}
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .content{padding:12px}
+    .title{font-size:15px;font-weight:700;line-height:1.2;margin:0 0 6px}
+    .meta{font-size:13px;color:var(--muted)}
+    .actions{display:flex;gap:8px;margin-top:auto;padding:12px}
+    .small{padding:7px 10px;font-size:13px;border-radius:8px}
+    .empty{opacity:.8;border:1px dashed var(--border);border-radius:14px;padding:20px;text-align:center}
+
+    /* chips e badges */
+    .chip-btn{border:1px solid var(--border);background:var(--chip);color:var(--muted);padding:8px 10px;border-radius:999px;cursor:pointer}
+    .chip-btn.active{background:var(--brand);color:#052313;border-color:transparent}
+    .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .badge{font-size:11px;background:var(--chip);color:var(--muted);border:1px solid var(--border);padding:4px 6px;border-radius:999px}
+
+    /* Modal */
+    dialog{border:none;border-radius:16px;width:min(900px,96vw);background:linear-gradient(180deg,#0f1a17,#0a1412);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.6);padding:0}
+    dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
+    .modal{display:grid;grid-template-columns:180px 1fr;gap:18px;padding:18px;border-bottom:1px solid var(--border)}
+    .modal .cover{border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#0e1915}
+    .modal .cover img{width:100%;display:block}
+    .modal h2{margin:0 0 6px;font-size:20px}
+    .modal .sub{color:var(--muted);font-size:13px}
+    .scroll{max-height:46vh;overflow:auto;padding:18px;border-top:1px solid var(--border)}
+    .lists{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+    /* Rating (0–5 com passo 0.5) */
+    .rating{display:inline-flex;flex-direction:row-reverse;gap:6px}
+    .star{font-size:24px;cursor:pointer;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+    .star::before{content:"☆"}
+    .star.filled::before{content:"★";color:var(--brand)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <h1>Minhas Listas</h1>
+      <a class="btn btn-ghost" href="index.html">Voltar à busca</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <h2>⭐ Favoritos</h2>
+      <div id="fav" class="grid"></div>
+      <div id="favEmpty" class="empty" style="display:none">Nenhum favorito ainda.</div>
+    </section>
+    <section>
+      <h2>📗 Lidos</h2>
+      <div id="read" class="grid"></div>
+      <div id="readEmpty" class="empty" style="display:none">Você ainda não marcou livros como lidos.</div>
+    </section>
+    <section>
+      <h2>📚 Quero Ler</h2>
+      <div id="wish" class="grid"></div>
+      <div id="wishEmpty" class="empty" style="display:none">Adicione livros que você quer ler para vê-los aqui.</div>
+    </section>
+  </main>
+
+  <dialog id="bookModal">
+    <div class="modal">
+      <div class="cover"><img id="mCover" alt="Capa"/></div>
+      <div>
+        <h2 id="mTitle">&nbsp;</h2>
+        <div class="sub" id="mAuthors"></div>
+        <div class="sub" id="mMeta"></div>
+        <div class="lists" id="mLists"></div>
+        <div style="margin-top:10px">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Sua nota</div>
+          <div class="rating" id="mRating"></div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div id="mCategories" class="badges"></div>
+      <p id="mDesc" style="white-space:pre-wrap;line-height:1.5"></p>
+    </div>
+  </dialog>
+
+<script>
+  // === Estado local ===
+  const LS_KEY = 'mbiblio_state_v1';
+  function loadState(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || { books: {} }; } catch(e){ return { books: {} }; } }
+  function saveState(s){ localStorage.setItem(LS_KEY, JSON.stringify(s)); }
+
+  // === Elementos ===
+  const favEl = document.getElementById('fav');
+  const readEl = document.getElementById('read');
+  const wishEl = document.getElementById('wish');
+
+  // === Utils ===
+  function escapeHtml(s){ return s?.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])) || ''; }
+  function stripHtml(html){ const tmp = document.createElement('div'); tmp.innerHTML = html; return tmp.textContent || tmp.innerText || ''; }
+  function labelList(k){ return {favorito:'Favorito', lido:'Lido', queroLer:'Quero Ler'}[k] || k; }
+
+  // === Render principal ===
+  function render(){
+    const st = loadState();
+    const entries = Object.entries(st.books);
+
+    const fav = entries.filter(([,v])=>v.lists?.favorito);
+    const read = entries.filter(([,v])=>v.lists?.lido);
+    const wish = entries.filter(([,v])=>v.lists?.queroLer);
+
+    renderGroup(favEl, fav, 'favEmpty', 'favorito');
+    renderGroup(readEl, read, 'readEmpty', 'lido');
+    renderGroup(wishEl, wish, 'wishEmpty', 'queroLer');
+  }
+
+  function renderGroup(container, arr, emptyId, listKey){
+    container.innerHTML='';
+    document.getElementById(emptyId).style.display = arr.length? 'none':'block';
+
+    arr.forEach(([id,meta])=>{
+      const card = document.createElement('div');
+      card.className='card';
+      const thumb = meta.thumb || 'https://via.placeholder.com/300x450?text=Sem+Capa';
+      const title = meta.title || 'Sem título';
+      const authors = (meta.authors||[]).join(', ');
+      const ratingMeta = (typeof meta.rating === 'number' && meta.rating>0) ? ` • Sua nota: ${meta.rating.toFixed(1)}` : '';
+
+      card.innerHTML = `
+        <div class="thumb"><img alt="${escapeHtml(title)}" src="${thumb}"></div>
+        <div class="content">
+          <h3 class="title">${escapeHtml(title)}</h3>
+          <div class="meta">${escapeHtml(authors)}${ratingMeta}</div>
+        </div>
+        <div class="actions">
+          <button class="btn small btn-ghost" data-open="${id}">Detalhes</button>
+          <button class="btn small" data-remove="${id}" data-list="${listKey}">Remover</button>
+        </div>`;
+      container.appendChild(card);
+
+      card.querySelector('[data-open]')?.addEventListener('click', ()=> openModal(id));
+      card.querySelector('[data-remove]')?.addEventListener('click', (e)=> removeFromList(id, e.currentTarget.getAttribute('data-list'), card));
+      card.querySelector('.thumb')?.addEventListener('click', ()=> openModal(id));
+    });
+  }
+
+  function removeFromList(id, listKey, card){
+    const st = loadState();
+    if(st.books[id]){
+      st.books[id].lists = { ...(st.books[id].lists||{}), [listKey]: false };
+      saveState(st);
+    }
+    card?.remove();
+    // re-exibe vazio se necessário
+    render();
+  }
+
+  // === Modal (detalhes + rating + toggles de listas) ===
+  const dlg = document.getElementById('bookModal');
+  const mCover = document.getElementById('mCover');
+  const mTitle = document.getElementById('mTitle');
+  const mAuthors = document.getElementById('mAuthors');
+  const mMeta = document.getElementById('mMeta');
+  const mDesc = document.getElementById('mDesc');
+  const mCats = document.getElementById('mCategories');
+  const mLists = document.getElementById('mLists');
+  const mRating = document.getElementById('mRating');
+
+  async function openModal(id){
+    try{
+      const data = await fetch(`/api/book?id=${id}`).then(r=>r.json());
+      const v = data.volumeInfo || {};
+
+      const cover = v.imageLinks?.thumbnail || v.imageLinks?.small || v.imageLinks?.smallThumbnail || '';
+      mCover.src = cover || 'https://via.placeholder.com/300x450?text=Sem+Capa';
+      mTitle.textContent = v.title || 'Sem título';
+      mAuthors.textContent = (v.authors?.join(', ') || 'Autor desconhecido');
+
+      const publisher = v.publisher || 'Editora desconhecida';
+      const pubDate = v.publishedDate || 'Data desconhecida';
+      const pages = v.pageCount ? `${v.pageCount} páginas` : null;
+      const rating = (v.averageRating ? `★ ${Number(v.averageRating).toFixed(1)}/5` : null);
+      const lang = v.language ? v.language.toUpperCase() : null;
+      const metaParts = [publisher, pubDate, pages, rating, lang].filter(Boolean);
+      mMeta.textContent = metaParts.join(' • ');
+
+      mCats.innerHTML = (v.categories||[]).map(c=>`<span class='badge'>${escapeHtml(c)}</span>`).join('');
+      mDesc.textContent = v.description ? stripHtml(v.description) : 'Sem sinopse.';
+
+      // Atualiza cache mínimo
+      const st = loadState();
+      const cur = st.books[id] || {};
+      cur.title = v.title || cur.title;
+      cur.authors = v.authors || cur.authors;
+      cur.thumb = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || cur.thumb;
+      st.books[id] = cur; saveState(st);
+
+      // Botões de listas
+      mLists.innerHTML = '';
+      ['favorito','lido','queroLer'].forEach(list => {
+        const btn = document.createElement('button');
+        btn.className = 'chip-btn';
+        btn.textContent = labelList(list);
+        const st2 = loadState().books[id];
+        if(st2?.lists?.[list]) btn.classList.add('active');
+        btn.addEventListener('click', ()=> toggleList(id, list, data, btn));
+        mLists.appendChild(btn);
+      });
+
+      // Controle de rating (0–5 step 0.5)
+      renderRatingControl(id);
+
+      dlg.showModal();
+      dlg.addEventListener('click', (e)=>{ if(e.target===dlg) dlg.close(); }, { once:true });
+    }catch(err){
+      alert('Erro ao carregar detalhes do livro.');
+    }
+  }
+
+  function toggleList(id, list, data, btn){
+    const st = loadState();
+    const cur = st.books[id] || {};
+    const curLists = cur.lists || {};
+    const newVal = !curLists[list];
+    curLists[list] = newVal;
+
+    if(data){
+      const v = data.volumeInfo || {};
+      cur.title = v.title || cur.title;
+      cur.authors = v.authors || cur.authors;
+      cur.thumb = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || cur.thumb;
+    }
+
+    st.books[id] = { ...cur, lists: curLists };
+    saveState(st);
+
+    if(btn) btn.classList.toggle('active', newVal);
+    render(); // reflete mudança nas grids
+  }
+
+  function renderRatingControl(id){
+    mRating.innerHTML = '';
+    const st = loadState();
+    const current = +(st.books[id]?.rating || 0);
+    for(let i=10;i>=1;i--){
+      const val = i*0.5;
+      const span = document.createElement('span');
+      span.className = 'star'+(current>=val?' filled':'');
+      span.title = val.toFixed(1);
+      span.addEventListener('click', ()=> setRating(id, val));
+      mRating.appendChild(span);
+    }
+    const zero = document.createElement('button');
+    zero.className='chip-btn'; zero.textContent='Zerar';
+    zero.style.marginLeft='8px';
+    zero.addEventListener('click', ()=> setRating(id, 0));
+    mRating.appendChild(zero);
+  }
+
+  function setRating(id, val){
+    const st = loadState();
+    st.books[id] = { ...(st.books[id]||{}), rating: val };
+    saveState(st);
+    render();           // atualiza meta "Sua nota" nas cards
+    renderRatingControl(id); // re-render estrelas no modal
+  }
+
+  // Inicializa
+  render();
+</script>
+</body>
+</html>
