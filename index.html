@@ -1,171 +1,231 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Minha Biblioteca</title>
-  <style>
-    :root{
-      --bg:#0b1210;           /* fundo escuro esverdeado */
-      --card:#101a17;         /* cards */
-      --muted:#95b5a3;        /* texto secundário */
-      --text:#e9f4ee;         /* texto principal */
-      --brand:#36c077;        /* verde principal */
-      --brand-2:#2aa866;      /* verde escuro */
-      --brand-3:#1c7b4b;      /* hover */
-      --chip:#183126;         /* tags */
-      --border:#254236;       /* bordas */
-      --danger:#ff6b6b;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;background:linear-gradient(120deg,#07100c,#0d1513 30%,#07100c);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
-    a{color:var(--brand);text-decoration:none}
-    header{position:sticky;top:0;z-index:5;background:rgba(11,18,16,.75);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px}
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.3px}
-    .pill{background:var(--chip);border:1px solid var(--border);color:var(--muted);padding:8px 12px;border-radius:999px}
-    .btn{appearance:none;border:none;cursor:pointer;border-radius:10px;background:var(--brand);color:#052313;font-weight:700;padding:10px 14px;box-shadow:var(--shadow);transition:transform .06s ease, filter .2s}
-    .btn:hover{filter:brightness(1.05)}
-    .btn:active{transform:translateY(1px)}
-    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
-    .search{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-top:14px}
-    input[type="text"], select{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:12px;outline:none}
-    input::placeholder{color:#a8c7b8}
-    main{padding:22px}
-    .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
-    .thumb{aspect-ratio:3/4;background:#0e1915;display:flex;align-items:center;justify-content:center}
-    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    .content{padding:12px}
-    .title{font-size:15px;font-weight:700;line-height:1.2;margin:0 0 6px}
-    .meta{font-size:13px;color:var(--muted)}
-    .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .badge{font-size:11px;background:var(--chip);color:var(--muted);border:1px solid var(--border);padding:4px 6px;border-radius:999px}
-    .actions{display:flex;gap:8px;margin-top:auto;padding:12px}
-    .small{padding:7px 10px;font-size:13px;border-radius:8px}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minha Biblioteca</title>
+<style>
+  :root{
+    --bg:#0b1210; --card:#101a17; --muted:#95b5a3; --text:#e9f4ee;
+    --brand:#36c077; --brand-2:#2aa866; --brand-3:#1c7b4b;
+    --chip:#183126; --border:#254236; --danger:#ff6b6b;
+    --shadow:0 10px 30px rgba(0,0,0,.35); --focus:0 0 0 3px rgba(54,192,119,.35);
+  }
+  /* Reset + evitar herdar aparência do SO */
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:linear-gradient(120deg,#07100c,#0d1513 30%,#07100c);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
+  img{display:block;max-width:100%}
+  button,input,select{font:inherit;color:inherit}
+  button,select{appearance:none;-webkit-appearance:none;-moz-appearance:none}
+  button{background:transparent;border:none}
+  input,select{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;outline:none}
+  input::placeholder{color:#a8c7b8}
+  :focus-visible{outline:none;box-shadow:var(--focus)}
 
-    /* Modal */
-    dialog{border:none;border-radius:16px;width:min(900px,96vw);background:linear-gradient(180deg,#0f1a17,#0a1412);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.6);padding:0}
-    dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
-    .modal{display:grid;grid-template-columns:180px 1fr;gap:18px;padding:18px;border-bottom:1px solid var(--border)}
-    .modal .cover{border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#0e1915}
-    .modal .cover img{width:100%;display:block}
-    .modal h2{margin:0 0 6px;font-size:20px}
-    .modal .sub{color:var(--muted);font-size:13px}
-    .scroll{max-height:46vh;overflow:auto;padding:18px;border-top:1px solid var(--border)}
+  a{color:var(--brand);text-decoration:none}
+  header{position:sticky;top:0;z-index:5;background:rgba(11,18,16,.75);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.3px}
+  .pill{background:var(--chip);border:1px solid var(--border);color:var(--muted);padding:8px 12px;border-radius:999px}
 
-    .lists{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    .chip-btn{border:1px solid var(--border);background:var(--chip);color:var(--muted);padding:8px 10px;border-radius:999px;cursor:pointer}
-    .chip-btn.active{background:var(--brand);color:#052313;border-color:transparent}
+  .btn{cursor:pointer;border-radius:10px;background:var(--brand);color:#052313;
+       font-weight:700;padding:10px 14px;box-shadow:var(--shadow);
+       transition:transform .06s ease,filter .2s}
+  .btn:hover{filter:brightness(1.05)}
+  .btn:active{transform:translateY(1px)}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .small{padding:7px 10px;font-size:13px;border-radius:8px}
 
-    /* Rating (0–5 com 0.5) */
-    .rating{display:inline-flex;flex-direction:row-reverse;gap:6px}
-    .star{font-size:24px;cursor:pointer;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
-    .star::before{content:"☆"}
-    .star.filled::before{content:"★";color:var(--brand)}
+  .search{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-top:14px}
+  select{padding-right:38px;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="%2395b5a3"><path d="M7 10l5 5 5-5z"/></svg>');background-repeat:no-repeat;background-position:right 12px center}
 
-    .nav{display:flex;gap:10px;align-items:center}
-    footer{border-top:1px solid var(--border);padding:18px;color:var(--muted)}
+  main{padding:22px}
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .thumb{aspect-ratio:3/4;background:#0e1915;display:flex;align-items:center;justify-content:center}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .content{padding:12px}
+  .title{font-size:15px;font-weight:700;line-height:1.2;margin:0 0 6px}
+  .meta{font-size:13px;color:var(--muted)}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .badge{font-size:11px;background:var(--chip);color:var(--muted);border:1px solid var(--border);padding:4px 6px;border-radius:999px}
+  .actions{display:flex;gap:8px;margin-top:auto;padding:12px}
 
-    .empty{opacity:.8;border:1px dashed var(--border);border-radius:14px;padding:20px;text-align:center}
-  </style>
+  /* Modal */
+  dialog{border:none;border-radius:16px;width:min(900px,96vw);background:linear-gradient(180deg,#0f1a17,#0a1412);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.6);padding:0}
+  dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
+  .modal{display:grid;grid-template-columns:180px 1fr;gap:18px;padding:18px;border-bottom:1px solid var(--border)}
+  .modal .cover{border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#0e1915}
+  .modal h2{margin:0 0 6px;font-size:20px}
+  .modal .sub{color:var(--muted);font-size:13px}
+  .scroll{max-height:46vh;overflow:auto;padding:18px;border-top:1px solid var(--border)}
+  .lists{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .chip-btn{border:1px solid var(--border);background:var(--chip);color:var(--muted);padding:8px 10px;border-radius:999px;cursor:pointer}
+  .chip-btn.active{background:var(--brand);color:#052313;border-color:transparent}
+
+  /* Rating (0–5 com 0.5) */
+  .rating{display:inline-flex;flex-direction:row-reverse;gap:6px}
+  .star{font-size:24px;cursor:pointer;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+  .star::before{content:"☆"}
+  .star.filled::before{content:"★";color:var(--brand)}
+
+  footer{border-top:1px solid var(--border);padding:18px;color:var(--muted)}
+  .empty{opacity:.8;border:1px dashed var(--border);border-radius:14px;padding:20px;text-align:center}
+
+  /* seção Tendências */
+  .section-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:18px}
+</style>
 </head>
 <body>
-  <header>
-    <div class="wrap row">
-      <h1>Minha Biblioteca</h1>
-      <span class="pill">Google Books</span>
-      <div class="nav" style="margin-left:auto">
-        <a class="btn btn-ghost" href="listas.html">Ver Listas</a>
-        <button class="btn" id="randomBtn" title="Sinto-me com sorte">Aleatório</button>
-      </div>
-      <div class="search" style="width:100%">
-        <input id="q" type="text" placeholder="Busque por título, autor ou ISBN..." />
-        <select id="filterLang" title="Idioma">
-          <option value="">Todos idiomas</option>
-          <option value="pt">Português</option>
-          <option value="en">Inglês</option>
-          <option value="es">Espanhol</option>
-        </select>
-        <button class="btn" id="searchBtn">Buscar</button>
+<header>
+  <div class="wrap row">
+    <h1>Minha Biblioteca</h1>
+    <span class="pill">Google Books</span>
+    <div class="row" style="margin-left:auto">
+      <a class="btn btn-ghost" href="listas.html">Ver Listas</a>
+      <button class="btn" id="randomBtn" title="Sinto-me com sorte">Aleatório</button>
+    </div>
+    <div class="search" style="width:100%">
+      <input id="q" type="text" placeholder="Busque por título, autor ou ISBN..." />
+      <select id="filterLang" title="Idioma">
+        <option value="">Todos idiomas</option>
+        <option value="pt">Português</option>
+        <option value="en">Inglês</option>
+        <option value="es">Espanhol</option>
+      </select>
+      <button class="btn" id="searchBtn" type="button">Buscar</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Tendências -->
+  <section id="trendingSection">
+    <h2 class="section-title">🔥 Em tendência</h2>
+    <div id="trendGrid" class="grid"></div>
+  </section>
+
+  <div id="results" class="grid" style="margin-top:22px"></div>
+  <div id="empty" class="empty" style="display:none">Faça uma busca para começar 📚</div>
+</main>
+
+<footer class="wrap">Feito com <span style="color:var(--brand)">verde</span> 🌿 | <a href="listas.html">Listas</a></footer>
+
+<!-- Modal -->
+<dialog id="bookModal">
+  <div class="modal">
+    <div class="cover"><img id="mCover" alt="Capa"/></div>
+    <div>
+      <h2 id="mTitle">&nbsp;</h2>
+      <div class="sub" id="mAuthors"></div>
+      <div class="sub" id="mMeta"></div>
+      <div class="lists" id="mLists"></div>
+      <div style="margin-top:10px">
+        <div class="sub" style="margin-bottom:6px">Sua nota</div>
+        <div class="rating" id="mRating"></div>
       </div>
     </div>
-  </header>
-
-  <main class="wrap">
-    <div id="results" class="grid"></div>
-    <div id="empty" class="empty" style="display:none">Faça uma busca para começar 📚</div>
-  </main>
-
-  <footer class="wrap">Feito com <span style="color:var(--brand)">verde</span> 🌿 | <a href="listas.html">Listas</a></footer>
-
-  <dialog id="bookModal">
-    <div class="modal">
-      <div class="cover"><img id="mCover" alt="Capa"/></div>
-      <div>
-        <h2 id="mTitle">&nbsp;</h2>
-        <div class="sub" id="mAuthors"></div>
-        <div class="sub" id="mMeta"></div>
-        <div class="lists" id="mLists"></div>
-        <div style="margin-top:10px">
-          <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Sua nota</div>
-          <div class="rating" id="mRating"></div>
-        </div>
-      </div>
-    </div>
-    <div class="scroll">
-      <div id="mCategories" class="badges"></div>
-      <p id="mDesc" style="white-space:pre-wrap;line-height:1.5"></p>
-    </div>
-  </dialog>
+  </div>
+  <div class="scroll">
+    <div id="mCategories" class="badges"></div>
+    <p id="mDesc" style="white-space:pre-wrap;line-height:1.5"></p>
+  </div>
+</dialog>
 
 <script>
-  // === Config ===
-
-  // === Helpers de Storage ===
+  // ====== Storage ======
   const LS_KEY = 'mbiblio_state_v1';
-  function loadState(){
-    try { return JSON.parse(localStorage.getItem(LS_KEY)) || { books: {} }; }
-    catch(e){ return { books: {} }; }
-  }
-  function saveState(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-  function updateBookState(id, patch){
-    const st = loadState();
-    st.books[id] = { ...(st.books[id]||{}), ...patch };
-    saveState(st);
-  }
+  const loadState = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || { books: {} }; } catch { return { books: {} }; } };
+  const saveState = (s) => localStorage.setItem(LS_KEY, JSON.stringify(s));
+  const updateBookState = (id, patch) => { const s = loadState(); s.books[id] = { ...(s.books[id]||{}), ...patch }; saveState(s); };
 
-  // === Elementos ===
+  // ====== Elements ======
   const resultsEl = document.getElementById('results');
   const emptyEl = document.getElementById('empty');
   const qEl = document.getElementById('q');
   const btn = document.getElementById('searchBtn');
   const langEl = document.getElementById('filterLang');
   const randomBtn = document.getElementById('randomBtn');
+  const trendingSection = document.getElementById('trendingSection');
+  const trendGrid = document.getElementById('trendGrid');
 
   btn.addEventListener('click', () => search(qEl.value));
   qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(qEl.value); });
   randomBtn.addEventListener('click', randomPick);
 
-  // === Busca (via backend /api/books) ===
+  // ====== Fetch Helpers ======
+  async function fetchBooks(params){
+    const qs = new URLSearchParams(params);
+    const r = await fetch(`/api/books?${qs.toString()}`);
+    if(!r.ok) throw new Error('Falha na API');
+    return r.json();
+  }
+  async function fetchBook(id){
+    const r = await fetch(`/api/book?id=${id}`);
+    if(!r.ok) throw new Error('Falha na API (detalhes)');
+    return r.json();
+  }
+
+  // ====== Trending ======
+  async function loadTrending(){
+    try {
+      const queries = [
+        'subject:fiction',
+        'subject:fantasy',
+        'subject:science',
+        'subject:romance',
+        'subject:history'
+      ];
+      const promises = queries.map(q => fetchBooks({ q, orderBy: 'newest', maxResults: 10 }).catch(()=>({items:[]})));
+      const arr = await Promise.all(promises);
+
+      const map = new Map(); // evitar duplicados
+      arr.forEach(data => (data.items||[]).forEach(it => { if(!map.has(it.id)) map.set(it.id, it); }));
+      const items = Array.from(map.values()).slice(0, 24);
+
+      trendGrid.innerHTML = '';
+      if(!items.length){
+        trendingSection.style.display = 'none';
+        return;
+      }
+      items.forEach(it => renderCard(it, trendGrid));
+    } catch (e) {
+      trendingSection.style.display = 'none';
+      console.error(e);
+    }
+  }
+
+  // ====== Search ======
   async function search(query){
     resultsEl.innerHTML = '';
     emptyEl.style.display = 'none';
-    if(!query){ emptyEl.style.display='block'; return; }
 
-    let url = `/api/books?q=${encodeURIComponent(query)}`;
-    if(langEl.value) url += `&lang=${langEl.value}`;
+    if(!query){
+      trendingSection.style.display = '';
+      emptyEl.style.display = 'block';
+      return;
+    }
+    trendingSection.style.display = 'none';
 
     try{
-      const res = await fetch(url);
-      const data = await res.json();
-      if(!data.items){ emptyEl.style.display='block'; return; }
-      data.items.forEach(renderCard);
+      const data = await fetchBooks({
+        q: query,
+        orderBy: 'relevance',
+        maxResults: 24,
+        ...(langEl.value ? { lang: langEl.value } : {})
+      });
+      if(!data.items?.length){
+        emptyEl.textContent = 'Nenhum resultado encontrado.';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      data.items.forEach(item => renderCard(item, resultsEl));
     }catch(err){
-      emptyEl.textContent = 'Erro ao buscar resultados. Tente novamente.';
+      emptyEl.textContent = 'Erro ao buscar resultados. Verifique se as rotas /api estão no ar.';
       emptyEl.style.display = 'block';
+      console.error(err);
     }
   }
 
@@ -175,7 +235,8 @@
     qEl.value = pick; search(pick);
   }
 
-  function renderCard(item){
+  // ====== Cards & Modal ======
+  function renderCard(item, container = resultsEl){
     const v = item.volumeInfo || {};
     const id = item.id;
     const thumb = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || 'https://via.placeholder.com/300x450?text=Sem+Capa';
@@ -197,15 +258,17 @@
         <button class="btn small" data-fav="${id}">Favorito</button>
       </div>
     `;
-    resultsEl.appendChild(card);
+    container.appendChild(card);
     card.querySelector('[data-open]')?.addEventListener('click', ()=> openModal(id));
     card.querySelector('[data-fav]')?.addEventListener('click', ()=> toggleList(id, 'favorito', item));
     card.querySelector('.thumb')?.addEventListener('click', ()=> openModal(id));
   }
 
   function escapeHtml(s){ return s?.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])) || ''; }
+  function stripHtml(html){ const tmp = document.createElement('div'); tmp.innerHTML = html; return tmp.textContent || tmp.innerText || ''; }
+  function labelList(k){ return ({favorito:'Favorito', lido:'Lido', queroLer:'Quero Ler'})[k] || k; }
 
-  // === Modal ===
+  // Modal refs
   const dlg = document.getElementById('bookModal');
   const mCover = document.getElementById('mCover');
   const mTitle = document.getElementById('mTitle');
@@ -218,7 +281,7 @@
 
   async function openModal(id){
     try{
-      const data = await fetch(`/api/book?id=${id}`).then(r=>r.json());
+      const data = await fetchBook(id);
       const v = data.volumeInfo || {};
 
       const cover = v.imageLinks?.thumbnail || v.imageLinks?.small || v.imageLinks?.smallThumbnail || '';
@@ -233,34 +296,38 @@
       const lang = v.language ? v.language.toUpperCase() : null;
       const metaParts = [publisher, pubDate, pages, rating, lang].filter(Boolean);
       mMeta.textContent = metaParts.join(' • ');
-
       mCats.innerHTML = (v.categories||[]).map(c=>`<span class='badge'>${escapeHtml(c)}</span>`).join('');
       mDesc.textContent = v.description ? stripHtml(v.description) : 'Sem sinopse.';
 
-      // botões de listas
+      // Atualizar cache mínimo
+      const st = loadState();
+      const cur = st.books[id] || {};
+      cur.title = v.title || cur.title;
+      cur.authors = v.authors || cur.authors;
+      cur.thumb = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || cur.thumb;
+      st.books[id] = cur; saveState(st);
+
+      // Botões de listas
       mLists.innerHTML = '';
       ['favorito','lido','queroLer'].forEach(list => {
-        const btn = document.createElement('button');
-        btn.className = 'chip-btn';
-        btn.textContent = labelList(list);
-        const st = loadState().books[id];
-        if(st?.lists?.[list]) btn.classList.add('active');
-        btn.addEventListener('click', ()=> toggleList(id, list, data, btn));
-        mLists.appendChild(btn);
+        const b = document.createElement('button');
+        b.className = 'chip-btn';
+        b.textContent = labelList(list);
+        const st2 = loadState().books[id];
+        if(st2?.lists?.[list]) b.classList.add('active');
+        b.addEventListener('click', ()=> toggleList(id, list, data, b));
+        mLists.appendChild(b);
       });
 
-      // rating (0–5 step 0.5)
       renderRatingControl(id);
 
       dlg.showModal();
       dlg.addEventListener('click', (e)=>{ if(e.target===dlg) dlg.close(); }, { once:true });
     }catch(err){
       alert('Erro ao carregar detalhes do livro.');
+      console.error(err);
     }
   }
-
-  function stripHtml(html){ const tmp = document.createElement('div'); tmp.innerHTML = html; return tmp.textContent || tmp.innerText || ''; }
-  function labelList(k){ return {favorito:'Favorito', lido:'Lido', queroLer:'Quero Ler'}[k] || k; }
 
   function toggleList(id, list, itemData, btn){
     const st = loadState();
@@ -269,24 +336,21 @@
     const newVal = !curLists[list];
     curLists[list] = newVal;
 
-    // guardamos info mínima para render rápido nas listas
     if(itemData){
       const v = itemData.volumeInfo || {};
       cur.title = v.title || cur.title;
       cur.authors = v.authors || cur.authors;
       cur.thumb = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || cur.thumb;
     }
-
     st.books[id] = { ...cur, lists: curLists };
     saveState(st);
-    if(btn){ btn.classList.toggle('active', newVal); }
+    if(btn) btn.classList.toggle('active', newVal);
   }
 
   function renderRatingControl(id){
     mRating.innerHTML = '';
     const st = loadState();
     const current = +(st.books[id]?.rating || 0);
-    // 10 marcadores (0.5)
     for(let i=10;i>=1;i--){
       const val = i*0.5;
       const span = document.createElement('span');
@@ -295,14 +359,16 @@
       span.addEventListener('click', ()=> setRating(id, val));
       mRating.appendChild(span);
     }
-    // zero
     const zero = document.createElement('button');
     zero.className='chip-btn'; zero.textContent='Zerar';
     zero.style.marginLeft='8px';
     zero.addEventListener('click', ()=> setRating(id, 0));
     mRating.appendChild(zero);
   }
-  function setRating(id, val){ updateBookState(id, { rating: val }); renderRatingControl(id); }
+  const setRating = (id, val) => { updateBookState(id, { rating: val }); renderRatingControl(id); };
+
+  // ====== Init ======
+  loadTrending();            // mostra “Em tendência” logo de cara
 
 </script>
 </body>
