@@ -11,7 +11,7 @@
     --chip:#183126; --border:#254236; --danger:#ff6b6b;
     --shadow:0 10px 30px rgba(0,0,0,.35); --focus:0 0 0 3px rgba(54,192,119,.35);
   }
-  /* Reset + evitar herdar aparência do SO */
+  /* Reset + aparência consistente */
   *,*::before,*::after{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{background:linear-gradient(120deg,#07100c,#0d1513 30%,#07100c);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
@@ -22,8 +22,8 @@
   input,select{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;outline:none}
   input::placeholder{color:#a8c7b8}
   :focus-visible{outline:none;box-shadow:var(--focus)}
-
   a{color:var(--brand);text-decoration:none}
+
   header{position:sticky;top:0;z-index:5;background:rgba(11,18,16,.75);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
   .wrap{max-width:1100px;margin:0 auto;padding:18px}
   .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -65,17 +65,28 @@
   .chip-btn{border:1px solid var(--border);background:var(--chip);color:var(--muted);padding:8px 10px;border-radius:999px;cursor:pointer}
   .chip-btn.active{background:var(--brand);color:#052313;border-color:transparent}
 
-  /* Rating (0–5 com 0.5) */
+  /* Rating */
   .rating{display:inline-flex;flex-direction:row-reverse;gap:6px}
   .star{font-size:24px;cursor:pointer;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
   .star::before{content:"☆"}
   .star.filled::before{content:"★";color:var(--brand)}
 
+  /* Seções */
+  .section-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:18px}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:22px}
+  .result-meta{color:var(--muted);font-size:13px}
+
+  /* Paginação */
+  .pagination{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;margin:22px 0}
+  .page-btn{cursor:pointer;border-radius:10px;background:var(--chip);color:var(--muted);padding:8px 12px;border:1px solid var(--border);transition:filter .2s}
+  .page-btn:hover{filter:brightness(1.05)}
+  .page-btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+  .page-btn.current{background:var(--brand);color:#052313;border-color:transparent}
+  .page-ellipsis{color:var(--muted);padding:8px 6px}
+
   footer{border-top:1px solid var(--border);padding:18px;color:var(--muted)}
   .empty{opacity:.8;border:1px dashed var(--border);border-radius:14px;padding:20px;text-align:center}
-
-  /* seção Tendências */
-  .section-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:18px}
+  .error{color:#ffaaaa}
 </style>
 </head>
 <body>
@@ -85,7 +96,7 @@
     <span class="pill">Google Books</span>
     <div class="row" style="margin-left:auto">
       <a class="btn btn-ghost" href="listas.html">Ver Listas</a>
-      <button class="btn" id="randomBtn" title="Sinto-me com sorte">Aleatório</button>
+      <button class="btn" id="randomBtn" type="button">Aleatório</button>
     </div>
     <div class="search" style="width:100%">
       <input id="q" type="text" placeholder="Busque por título, autor ou ISBN..." />
@@ -107,8 +118,18 @@
     <div id="trendGrid" class="grid"></div>
   </section>
 
-  <div id="results" class="grid" style="margin-top:22px"></div>
+  <!-- Resultados -->
+  <section id="resultsSection" style="display:none">
+    <div class="section-head">
+      <h2 class="section-title">Resultados</h2>
+      <div id="resultMeta" class="result-meta"></div>
+    </div>
+    <div id="results" class="grid"></div>
+    <nav id="pagination" class="pagination" aria-label="Paginação"></nav>
+  </section>
+
   <div id="empty" class="empty" style="display:none">Faça uma busca para começar 📚</div>
+  <div id="err" class="empty error" style="display:none"></div>
 </main>
 
 <footer class="wrap">Feito com <span style="color:var(--brand)">verde</span> 🌿 | <a href="listas.html">Listas</a></footer>
@@ -135,6 +156,11 @@
 </dialog>
 
 <script>
+  // ====== Config de paginação ======
+  const PAGE_SIZE = 24;
+  // Mostra todos os números até este limite. Para exibir TODOS sempre, use Infinity.
+  const FULL_RENDER_LIMIT = 50;
+
   // ====== Storage ======
   const LS_KEY = 'mbiblio_state_v1';
   const loadState = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || { books: {} }; } catch { return { books: {} }; } };
@@ -142,8 +168,12 @@
   const updateBookState = (id, patch) => { const s = loadState(); s.books[id] = { ...(s.books[id]||{}), ...patch }; saveState(s); };
 
   // ====== Elements ======
+  const resultsSection = document.getElementById('resultsSection');
   const resultsEl = document.getElementById('results');
+  const paginationEl = document.getElementById('pagination');
+  const resultMetaEl = document.getElementById('resultMeta');
   const emptyEl = document.getElementById('empty');
+  const errEl = document.getElementById('err');
   const qEl = document.getElementById('q');
   const btn = document.getElementById('searchBtn');
   const langEl = document.getElementById('filterLang');
@@ -151,88 +181,175 @@
   const trendingSection = document.getElementById('trendingSection');
   const trendGrid = document.getElementById('trendGrid');
 
-  btn.addEventListener('click', () => search(qEl.value));
-  qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(qEl.value); });
+  btn.addEventListener('click', () => search(qEl.value, 1));
+  qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(qEl.value, 1); });
   randomBtn.addEventListener('click', randomPick);
 
-  // ====== Fetch Helpers ======
+  // ====== HTTP helpers (com fallback dev) ======
   async function fetchBooks(params){
     const qs = new URLSearchParams(params);
-    const r = await fetch(`/api/books?${qs.toString()}`);
-    if(!r.ok) throw new Error('Falha na API');
-    return r.json();
+    const apiUrl = `/api/books?${qs.toString()}`;
+    try {
+      const r = await fetch(apiUrl);
+      const data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || 'Erro API /api/books');
+      return data;
+    } catch (e) {
+      // Fallback DEV: consulta pública sem key (para rodar localmente)
+      console.warn('Fallback sem chave (dev):', e.message);
+      const gb = new URLSearchParams({
+        q: params.q,
+        orderBy: params.orderBy || 'relevance',
+        printType: 'books',
+        startIndex: params.startIndex || '0',
+        maxResults: params.maxResults || String(PAGE_SIZE)
+      });
+      if (params.lang) gb.set('langRestrict', params.lang);
+      const url = `https://www.googleapis.com/books/v1/volumes?${gb.toString()}`;
+      const r2 = await fetch(url);
+      if (!r2.ok) throw new Error('Falha no fallback Google Books');
+      return r2.json();
+    }
   }
   async function fetchBook(id){
-    const r = await fetch(`/api/book?id=${id}`);
-    if(!r.ok) throw new Error('Falha na API (detalhes)');
-    return r.json();
-  }
-
-  // ====== Trending ======
-  async function loadTrending(){
     try {
-      const queries = [
-        'subject:fiction',
-        'subject:fantasy',
-        'subject:science',
-        'subject:romance',
-        'subject:history'
-      ];
-      const promises = queries.map(q => fetchBooks({ q, orderBy: 'newest', maxResults: 10 }).catch(()=>({items:[]})));
-      const arr = await Promise.all(promises);
-
-      const map = new Map(); // evitar duplicados
-      arr.forEach(data => (data.items||[]).forEach(it => { if(!map.has(it.id)) map.set(it.id, it); }));
-      const items = Array.from(map.values()).slice(0, 24);
-
-      trendGrid.innerHTML = '';
-      if(!items.length){
-        trendingSection.style.display = 'none';
-        return;
-      }
-      items.forEach(it => renderCard(it, trendGrid));
+      const r = await fetch(`/api/book?id=${id}`);
+      const data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || 'Erro API /api/book');
+      return data;
     } catch (e) {
-      trendingSection.style.display = 'none';
-      console.error(e);
+      console.warn('Fallback detalhes sem chave:', e.message);
+      const url = `https://www.googleapis.com/books/v1/volumes/${id}`;
+      const r2 = await fetch(url);
+      if (!r2.ok) throw new Error('Falha no fallback detalhes');
+      return r2.json();
     }
   }
 
-  // ====== Search ======
-  async function search(query){
+  // ====== Estado da busca (para paginação) ======
+  const state = { query:'', lang:'', page:1, total:0 };
+
+  // ====== Tendências ======
+  async function loadTrending(){
+    try {
+      const queries = [ 'subject:fiction', 'subject:fantasy', 'subject:science', 'subject:romance', 'subject:horror' ];
+      const promises = queries.map(q => fetchBooks({ q, orderBy: 'newest', maxResults: 10 }).catch(()=>({items:[]})));
+      const arr = await Promise.all(promises);
+      const map = new Map();
+      arr.forEach(d => (d.items||[]).forEach(it => { if(!map.has(it.id)) map.set(it.id, it); }));
+      const items = Array.from(map.values()).slice(0, 24);
+      trendGrid.innerHTML = '';
+      if(!items.length){ trendingSection.style.display='none'; return; }
+      items.forEach(it => renderCard(it, trendGrid));
+    } catch { trendingSection.style.display='none'; }
+  }
+
+  // ====== Busca com paginação ======
+  async function search(query, page=1){
     resultsEl.innerHTML = '';
+    paginationEl.innerHTML = '';
+    resultMetaEl.textContent = '';
+    errEl.style.display = 'none';
     emptyEl.style.display = 'none';
 
-    if(!query){
+    state.query = (query||'').trim();
+    state.lang = langEl.value || '';
+    state.page = page;
+
+    if(!state.query){
+      resultsSection.style.display = 'none';
       trendingSection.style.display = '';
       emptyEl.style.display = 'block';
+      emptyEl.textContent = 'Faça uma busca para começar 📚';
       return;
     }
     trendingSection.style.display = 'none';
+    resultsSection.style.display = '';
 
     try{
+      const startIndex = (page-1) * PAGE_SIZE;
       const data = await fetchBooks({
-        q: query,
-        orderBy: 'relevance',
-        maxResults: 24,
-        ...(langEl.value ? { lang: langEl.value } : {})
+        q: state.query, orderBy: 'relevance',
+        startIndex, maxResults: PAGE_SIZE,
+        ...(state.lang ? { lang: state.lang } : {})
       });
+
+      const total = Number(data.totalItems || 0);
+      state.total = total;
+
       if(!data.items?.length){
-        emptyEl.textContent = 'Nenhum resultado encontrado.';
-        emptyEl.style.display = 'block';
+        resultsEl.innerHTML = '';
+        resultMetaEl.textContent = 'Nenhum resultado.';
+        renderPagination(0, PAGE_SIZE, 1);
         return;
       }
+
+      // Render cards
       data.items.forEach(item => renderCard(item, resultsEl));
+
+      // Meta “Mostrando X–Y de N”
+      const start = startIndex + 1;
+      const end = Math.min(total, startIndex + data.items.length);
+      resultMetaEl.textContent = `Mostrando ${start}–${end} de ${total} resultado${total!==1?'s':''}.`;
+
+      // Paginação
+      renderPagination(total, PAGE_SIZE, page);
+
+      // Scroll para topo ao paginar
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }catch(err){
-      emptyEl.textContent = 'Erro ao buscar resultados. Verifique se as rotas /api estão no ar.';
-      emptyEl.style.display = 'block';
+      errEl.textContent = 'Erro ao buscar resultados. Verifique as rotas /api.';
+      errEl.style.display = 'block';
       console.error(err);
     }
   }
 
-  async function randomPick(){
-    const seeds = ['fantasia','romance','ficção científica','história','programação','filosofia','poesia','biografia'];
+  function renderPagination(total, size, page){
+    paginationEl.innerHTML = '';
+    const totalPages = Math.max(1, Math.ceil(total / size));
+    if (totalPages <= 1) { paginationEl.style.display='none'; return; }
+    paginationEl.style.display='flex';
+
+    const addBtn = (label, p, {disabled=false,current=false,aria='' }={})=>{
+      const b = document.createElement('button');
+      b.type='button';
+      b.className = `page-btn${current?' current':''}`;
+      b.textContent = label;
+      if (aria) b.setAttribute('aria-label', aria);
+      if (current) b.setAttribute('aria-current','page');
+      b.disabled = disabled;
+      if (!current && !disabled) b.addEventListener('click', ()=> gotoPage(p));
+      paginationEl.appendChild(b);
+    };
+    const addEllipsis = ()=>{ const s=document.createElement('span'); s.className='page-ellipsis'; s.textContent='…'; paginationEl.appendChild(s); };
+
+    // Prev
+    addBtn('‹ Anterior', Math.max(1,page-1), { disabled: page===1, aria:'Página anterior' });
+
+    // Números
+    if (totalPages <= FULL_RENDER_LIMIT){
+      for (let i=1;i<=totalPages;i++) addBtn(String(i), i, { current: i===page, aria:`Ir para página ${i}` });
+    } else {
+      // Condensado (primeira, últimas e janela ao redor da atual)
+      addBtn('1', 1, { current: page===1 });
+      if (page > 3) addEllipsis();
+      const start = Math.max(2, page-2);
+      const end = Math.min(totalPages-1, page+2);
+      for (let i=start;i<=end;i++) addBtn(String(i), i, { current: i===page });
+      if (page < totalPages-2) addEllipsis();
+      addBtn(String(totalPages), totalPages, { current: page===totalPages });
+    }
+
+    // Next
+    addBtn('Próxima ›', Math.min(totalPages,page+1), { disabled: page===totalPages, aria:'Próxima página' });
+  }
+
+  function gotoPage(p){ search(state.query, p); }
+
+  function randomPick(){
+    const seeds = ['fantasia','romance','ficção científica','história','programação','filosofia','poesia','biografia','terror'];
     const pick = seeds[Math.floor(Math.random()*seeds.length)];
-    qEl.value = pick; search(pick);
+    qEl.value = pick; search(pick, 1);
   }
 
   // ====== Cards & Modal ======
@@ -299,7 +416,7 @@
       mCats.innerHTML = (v.categories||[]).map(c=>`<span class='badge'>${escapeHtml(c)}</span>`).join('');
       mDesc.textContent = v.description ? stripHtml(v.description) : 'Sem sinopse.';
 
-      // Atualizar cache mínimo
+      // Atualiza cache mínimo para Listas
       const st = loadState();
       const cur = st.books[id] || {};
       cur.title = v.title || cur.title;
@@ -368,8 +485,7 @@
   const setRating = (id, val) => { updateBookState(id, { rating: val }); renderRatingControl(id); };
 
   // ====== Init ======
-  loadTrending();            // mostra “Em tendência” logo de cara
-
+  loadTrending(); // mostra tendências imediatamente
 </script>
 </body>
 </html>
