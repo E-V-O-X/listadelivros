@@ -1,4 +1,3 @@
-// /api/books.js
 export default async function handler(req, res) {
   const { q, lang, orderBy = 'relevance', startIndex = '0', maxResults = '24' } = req.query;
   if (!q) return res.status(400).json({ error: 'Parâmetro q é obrigatório' });
