@@ -16,10 +16,9 @@
   html,body{margin:0;height:100%}
   body{background:linear-gradient(120deg,#07100c,#0d1513 30%,#07100c);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
   img{display:block;max-width:100%}
-  button,input,select{font:inherit;color:inherit}
-  button,select{appearance:none;-webkit-appearance:none;-moz-appearance:none}
-  button{background:transparent;border:none}
-  input,select{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;outline:none}
+  button,input{font:inherit;color:inherit}
+  button{appearance:none;background:transparent;border:none}
+  input{appearance:none;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;outline:none}
   input::placeholder{color:#a8c7b8}
   :focus-visible{outline:none;box-shadow:var(--focus)}
   a{color:var(--brand);text-decoration:none}
@@ -38,8 +37,8 @@
   .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
   .small{padding:7px 10px;font-size:13px;border-radius:8px}
 
-  .search{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-top:14px}
-  select{padding-right:38px;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="%2395b5a3"><path d="M7 10l5 5 5-5z"/></svg>');background-repeat:no-repeat;background-position:right 12px center}
+  /* Busca: input + botão (sem seletor de idioma) */
+  .search{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px}
 
   main{padding:22px}
   /* 6 por linha no desktop; responsivo para telas menores */
@@ -106,12 +105,6 @@
     </div>
     <div class="search" style="width:100%">
       <input id="q" type="text" placeholder="Busque por título, autor ou ISBN..." />
-      <select id="filterLang" title="Idioma">
-        <option value="">Todos idiomas</option>
-        <option value="pt">Português</option>
-        <option value="en">Inglês</option>
-        <option value="es">Espanhol</option>
-      </select>
       <button class="btn" id="searchBtn" type="button">Buscar</button>
     </div>
   </div>
@@ -168,7 +161,7 @@
 <script>
   // ====== Config ======
   const PAGE_SIZE = 24;
-  const FULL_RENDER_LIMIT = 50; // para exibir todos números sempre, use Infinity
+  const FULL_RENDER_LIMIT = Infinity; // mostra TODOS os números de página
 
   // ====== Storage ======
   const LS_KEY = 'mbiblio_state_v1';
@@ -191,14 +184,13 @@
   const errEl = document.getElementById('err');
   const qEl = document.getElementById('q');
   const btn = document.getElementById('searchBtn');
-  const langEl = document.getElementById('filterLang');
   const randomBtn = document.getElementById('randomBtn');
 
   btn.addEventListener('click', () => search(qEl.value, 1));
   qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(qEl.value, 1); });
   randomBtn.addEventListener('click', randomPick);
 
-  // ====== HTTP helpers (com fallback dev) ======
+  // ====== HTTP helpers (com fallback dev; backend já força PT-BR) ======
   async function fetchBooks(params){
     const qs = new URLSearchParams(params);
     const apiUrl = `/api/books?${qs.toString()}`;
@@ -215,9 +207,9 @@
         printType: 'books',
         startIndex: params.startIndex || '0',
         maxResults: params.maxResults || String(PAGE_SIZE),
-        country: params.country || 'BR'
+        country: 'BR',
+        langRestrict: 'pt'
       });
-      if (params.lang) gb.set('langRestrict', params.lang);
       const url = `https://www.googleapis.com/books/v1/volumes?${gb.toString()}`;
       const r2 = await fetch(url);
       if (!r2.ok) throw new Error('Falha no fallback Google Books');
@@ -238,36 +230,19 @@
     }
   }
 
-  // ====== Preferência por PT-BR ======
-  const PT_HINTS = /(portugu[eê]s|pt-?br|brasil(eiro)?)/i;
-  function desiredLangFromQuery(q, selectValue){
-    if (selectValue) return selectValue;            // usuário escolheu
-    if (PT_HINTS.test(q||'')) return 'pt';         // inferência pela query
-    return '';                                      // sem restrição
-  }
-  function prioritizePortuguese(items){
-    return (items||[]).slice().sort((a,b)=>{
-      const la = (a.volumeInfo?.language||'').toLowerCase();
-      const lb = (b.volumeInfo?.language||'').toLowerCase();
-      const sa = (la==='pt' || la==='pt-br') ? 1 : 0;
-      const sb = (lb==='pt' || lb==='pt-br') ? 1 : 0;
-      return sb - sa; // pt primeiro
-    });
-  }
-
   // ====== Estado ======
-  const state = { mode:'trending', query:'', lang:'', page:1, total:0 };
+  const state = { mode:'trending', query:'', page:1, total:0 };
   const trendState = { items:[], page:1, total:0 };
 
   // ====== Tendências (com paginação) ======
   async function loadTrending(){
     try {
       const queries = [ 'subject:ficção', 'subject:romance', 'subject:fantasia', 'subject:biografia', 'subject:hq', 'subject:horror' ];
-      const promises = queries.map(q => fetchBooks({ q, orderBy: 'newest', maxResults: 20, lang:'pt', country:'BR' }).catch(()=>({items:[]})));
+      const promises = queries.map(q => fetchBooks({ q, orderBy: 'newest', maxResults: 20 }).catch(()=>({items:[]})));
       const arr = await Promise.all(promises);
       const map = new Map();
       arr.forEach(d => (d.items||[]).forEach(it => { if(!map.has(it.id)) map.set(it.id, it); }));
-      trendState.items = prioritizePortuguese(Array.from(map.values()));
+      trendState.items = (arr.length ? Array.from(map.values()) : []);
       trendState.total = trendState.items.length;
       renderTrendingPage(1);
     } catch (e) {
@@ -296,9 +271,7 @@
     errEl.style.display = 'none';
     emptyEl.style.display = 'none';
 
-    const langGuess = desiredLangFromQuery(query, langEl.value);
     state.query = (query||'').trim();
-    state.lang = langGuess;
     state.page = page;
     state.mode = 'search';
 
@@ -316,16 +289,13 @@
     try{
       const startIndex = (page-1) * PAGE_SIZE;
       const data = await fetchBooks({
-        q: state.query, orderBy: 'relevance',
-        startIndex, maxResults: PAGE_SIZE,
-        ...(state.lang ? { lang: state.lang } : {}),
-        country:'BR'
+        q: state.query, orderBy: 'relevance', startIndex, maxResults: PAGE_SIZE
       });
 
       const total = Number(data.totalItems || 0);
       state.total = total;
 
-      const items = prioritizePortuguese(data.items || []);
+      const items = data.items || [];
       if(!items.length){
         resultsEl.innerHTML = '';
         resultMetaEl.textContent = 'Nenhum resultado.';
@@ -367,22 +337,9 @@
       if (!current && !disabled) b.addEventListener('click', ()=> goToPage(p));
       container.appendChild(b);
     };
-    const addEllipsis = ()=>{ const s=document.createElement('span'); s.className='page-ellipsis'; s.textContent='…'; container.appendChild(s); };
 
     addBtn('‹ Anterior', Math.max(1,page-1), { disabled: page===1, aria:'Página anterior' });
-
-    if (totalPages <= FULL_RENDER_LIMIT){
-      for (let i=1;i<=totalPages;i++) addBtn(String(i), i, { current: i===page, aria:`Ir para página ${i}` });
-    } else {
-      addBtn('1', 1, { current: page===1 });
-      if (page > 3) addEllipsis();
-      const start = Math.max(2, page-2);
-      const end = Math.min(totalPages-1, page+2);
-      for (let i=start;i<=end;i++) addBtn(String(i), i, { current: i===page });
-      if (page < totalPages-2) addEllipsis();
-      addBtn(String(totalPages), totalPages, { current: page===totalPages });
-    }
-
+    for (let i=1;i<=totalPages;i++) addBtn(String(i), i, { current: i===page, aria:`Ir para página ${i}` });
     addBtn('Próxima ›', Math.min(totalPages,page+1), { disabled: page===totalPages, aria:'Próxima página' });
   }
 
