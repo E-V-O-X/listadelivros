@@ -3,13 +3,15 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'Parâmetro id é obrigatório' });
 
   const apiKey = process.env.GOOGLE_BOOKS_KEY;
-  const url = `https://www.googleapis.com/books/v1/volumes/${id}?key=${apiKey}`;
+  if (!apiKey) return res.status(500).json({ error: 'GOOGLE_BOOKS_KEY não configurada' });
 
+  const url = `https://www.googleapis.com/books/v1/volumes/${id}?key=${apiKey}`;
   try {
-    const response = await fetch(url);
-    const data = await response.json();
+    const r = await fetch(url);
+    const data = await r.json();
+    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
     res.status(200).json(data);
-  } catch (err) {
-    res.status(500).json({ error: 'Erro ao buscar dados da API' });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao buscar detalhes do livro' });
   }
 }
