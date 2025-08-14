@@ -25,7 +25,7 @@
   a{color:var(--brand);text-decoration:none}
 
   header{position:sticky;top:0;z-index:5;background:rgba(11,18,16,.75);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
-  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px}
   .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.3px}
   .pill{background:var(--chip);border:1px solid var(--border);color:var(--muted);padding:8px 12px;border-radius:999px}
@@ -42,16 +42,22 @@
   select{padding-right:38px;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="%2395b5a3"><path d="M7 10l5 5 5-5z"/></svg>');background-repeat:no-repeat;background-position:right 12px center}
 
   main{padding:22px}
-  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  /* 6 por linha no desktop; responsivo para telas menores */
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(6,1fr)}
+  @media (max-width:1200px){ .grid{grid-template-columns:repeat(5,1fr);} }
+  @media (max-width:992px){ .grid{grid-template-columns:repeat(4,1fr);} }
+  @media (max-width:768px){ .grid{grid-template-columns:repeat(3,1fr);} }
+  @media (max-width:560px){ .grid{grid-template-columns:repeat(2,1fr);} }
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
   .thumb{aspect-ratio:3/4;background:#0e1915;display:flex;align-items:center;justify-content:center}
   .thumb img{width:100%;height:100%;object-fit:cover}
-  .content{padding:12px}
-  .title{font-size:15px;font-weight:700;line-height:1.2;margin:0 0 6px}
-  .meta{font-size:13px;color:var(--muted)}
-  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .badge{font-size:11px;background:var(--chip);color:var(--muted);border:1px solid var(--border);padding:4px 6px;border-radius:999px}
-  .actions{display:flex;gap:8px;margin-top:auto;padding:12px}
+  .content{padding:10px}
+  .title{font-size:14px;font-weight:700;line-height:1.25;margin:0 0 6px}
+  .meta{font-size:12px;color:var(--muted)}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .badge{font-size:10px;background:var(--chip);color:var(--muted);border:1px solid var(--border);padding:3px 6px;border-radius:999px}
+  .actions{display:flex;gap:8px;margin-top:auto;padding:10px}
 
   /* Modal */
   dialog{border:none;border-radius:16px;width:min(900px,96vw);background:linear-gradient(180deg,#0f1a17,#0a1412);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.6);padding:0}
@@ -77,7 +83,7 @@
   .result-meta{color:var(--muted);font-size:13px}
 
   /* Paginação */
-  .pagination{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;margin:22px 0}
+  .pagination{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;margin:18px 0}
   .page-btn{cursor:pointer;border-radius:10px;background:var(--chip);color:var(--muted);padding:8px 12px;border:1px solid var(--border);transition:filter .2s}
   .page-btn:hover{filter:brightness(1.05)}
   .page-btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
@@ -112,10 +118,14 @@
 </header>
 
 <main class="wrap">
-  <!-- Tendências -->
+  <!-- Tendências (com paginação) -->
   <section id="trendingSection">
-    <h2 class="section-title">🔥 Em tendência</h2>
+    <div class="section-head">
+      <h2 class="section-title">🔥 Em tendência</h2>
+      <div id="trendMeta" class="result-meta"></div>
+    </div>
     <div id="trendGrid" class="grid"></div>
+    <nav id="trendPagination" class="pagination" aria-label="Paginação de tendências"></nav>
   </section>
 
   <!-- Resultados -->
@@ -125,7 +135,7 @@
       <div id="resultMeta" class="result-meta"></div>
     </div>
     <div id="results" class="grid"></div>
-    <nav id="pagination" class="pagination" aria-label="Paginação"></nav>
+    <nav id="pagination" class="pagination" aria-label="Paginação de resultados"></nav>
   </section>
 
   <div id="empty" class="empty" style="display:none">Faça uma busca para começar 📚</div>
@@ -156,10 +166,9 @@
 </dialog>
 
 <script>
-  // ====== Config de paginação ======
+  // ====== Config ======
   const PAGE_SIZE = 24;
-  // Mostra todos os números até este limite. Para exibir TODOS sempre, use Infinity.
-  const FULL_RENDER_LIMIT = 50;
+  const FULL_RENDER_LIMIT = 50; // para exibir todos números sempre, use Infinity
 
   // ====== Storage ======
   const LS_KEY = 'mbiblio_state_v1';
@@ -172,14 +181,18 @@
   const resultsEl = document.getElementById('results');
   const paginationEl = document.getElementById('pagination');
   const resultMetaEl = document.getElementById('resultMeta');
+
+  const trendingSection = document.getElementById('trendingSection');
+  const trendGrid = document.getElementById('trendGrid');
+  const trendPaginationEl = document.getElementById('trendPagination');
+  const trendMetaEl = document.getElementById('trendMeta');
+
   const emptyEl = document.getElementById('empty');
   const errEl = document.getElementById('err');
   const qEl = document.getElementById('q');
   const btn = document.getElementById('searchBtn');
   const langEl = document.getElementById('filterLang');
   const randomBtn = document.getElementById('randomBtn');
-  const trendingSection = document.getElementById('trendingSection');
-  const trendGrid = document.getElementById('trendGrid');
 
   btn.addEventListener('click', () => search(qEl.value, 1));
   qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') search(qEl.value, 1); });
@@ -196,13 +209,13 @@
       return data;
     } catch (e) {
       // Fallback DEV: consulta pública sem key (para rodar localmente)
-      console.warn('Fallback sem chave (dev):', e.message);
       const gb = new URLSearchParams({
         q: params.q,
         orderBy: params.orderBy || 'relevance',
         printType: 'books',
         startIndex: params.startIndex || '0',
-        maxResults: params.maxResults || String(PAGE_SIZE)
+        maxResults: params.maxResults || String(PAGE_SIZE),
+        country: params.country || 'BR'
       });
       if (params.lang) gb.set('langRestrict', params.lang);
       const url = `https://www.googleapis.com/books/v1/volumes?${gb.toString()}`;
@@ -217,34 +230,65 @@
       const data = await r.json();
       if (!r.ok || data.error) throw new Error(data.error || 'Erro API /api/book');
       return data;
-    } catch (e) {
-      console.warn('Fallback detalhes sem chave:', e.message);
-      const url = `https://www.googleapis.com/books/v1/volumes/${id}`;
+    } catch {
+      const url = `https://www.googleapis.com/books/v1/volumes/${id}?country=BR`;
       const r2 = await fetch(url);
       if (!r2.ok) throw new Error('Falha no fallback detalhes');
       return r2.json();
     }
   }
 
-  // ====== Estado da busca (para paginação) ======
-  const state = { query:'', lang:'', page:1, total:0 };
+  // ====== Preferência por PT-BR ======
+  const PT_HINTS = /(portugu[eê]s|pt-?br|brasil(eiro)?)/i;
+  function desiredLangFromQuery(q, selectValue){
+    if (selectValue) return selectValue;            // usuário escolheu
+    if (PT_HINTS.test(q||'')) return 'pt';         // inferência pela query
+    return '';                                      // sem restrição
+  }
+  function prioritizePortuguese(items){
+    return (items||[]).slice().sort((a,b)=>{
+      const la = (a.volumeInfo?.language||'').toLowerCase();
+      const lb = (b.volumeInfo?.language||'').toLowerCase();
+      const sa = (la==='pt' || la==='pt-br') ? 1 : 0;
+      const sb = (lb==='pt' || lb==='pt-br') ? 1 : 0;
+      return sb - sa; // pt primeiro
+    });
+  }
 
-  // ====== Tendências ======
+  // ====== Estado ======
+  const state = { mode:'trending', query:'', lang:'', page:1, total:0 };
+  const trendState = { items:[], page:1, total:0 };
+
+  // ====== Tendências (com paginação) ======
   async function loadTrending(){
     try {
-      const queries = [ 'subject:fiction', 'subject:fantasy', 'subject:science', 'subject:romance', 'subject:horror' ];
-      const promises = queries.map(q => fetchBooks({ q, orderBy: 'newest', maxResults: 10 }).catch(()=>({items:[]})));
+      const queries = [ 'subject:ficção', 'subject:romance', 'subject:fantasia', 'subject:biografia', 'subject:hq', 'subject:horror' ];
+      const promises = queries.map(q => fetchBooks({ q, orderBy: 'newest', maxResults: 20, lang:'pt', country:'BR' }).catch(()=>({items:[]})));
       const arr = await Promise.all(promises);
       const map = new Map();
       arr.forEach(d => (d.items||[]).forEach(it => { if(!map.has(it.id)) map.set(it.id, it); }));
-      const items = Array.from(map.values()).slice(0, 24);
-      trendGrid.innerHTML = '';
-      if(!items.length){ trendingSection.style.display='none'; return; }
-      items.forEach(it => renderCard(it, trendGrid));
-    } catch { trendingSection.style.display='none'; }
+      trendState.items = prioritizePortuguese(Array.from(map.values()));
+      trendState.total = trendState.items.length;
+      renderTrendingPage(1);
+    } catch (e) {
+      console.error(e);
+      trendingSection.style.display='none';
+    }
+  }
+  function renderTrendingPage(page){
+    trendState.page = page;
+    trendGrid.innerHTML = '';
+    if (!trendState.total){ trendingSection.style.display='none'; return; }
+    trendingSection.style.display='';
+
+    const startIndex = (page-1)*PAGE_SIZE;
+    const slice = trendState.items.slice(startIndex, startIndex + PAGE_SIZE);
+    slice.forEach(item => renderCard(item, trendGrid));
+    trendMetaEl.textContent = `Mostrando ${startIndex+1}–${Math.min(trendState.total,startIndex+slice.length)} de ${trendState.total} em tendência.`;
+    renderPagination(trendState.total, PAGE_SIZE, page, trendPaginationEl, renderTrendingPage);
   }
 
-  // ====== Busca com paginação ======
+  // ====== Busca paginada ======
   async function search(query, page=1){
     resultsEl.innerHTML = '';
     paginationEl.innerHTML = '';
@@ -252,17 +296,20 @@
     errEl.style.display = 'none';
     emptyEl.style.display = 'none';
 
+    const langGuess = desiredLangFromQuery(query, langEl.value);
     state.query = (query||'').trim();
-    state.lang = langEl.value || '';
+    state.lang = langGuess;
     state.page = page;
+    state.mode = 'search';
 
     if(!state.query){
       resultsSection.style.display = 'none';
-      trendingSection.style.display = '';
+      renderTrendingPage(1);
       emptyEl.style.display = 'block';
       emptyEl.textContent = 'Faça uma busca para começar 📚';
       return;
     }
+
     trendingSection.style.display = 'none';
     resultsSection.style.display = '';
 
@@ -271,31 +318,29 @@
       const data = await fetchBooks({
         q: state.query, orderBy: 'relevance',
         startIndex, maxResults: PAGE_SIZE,
-        ...(state.lang ? { lang: state.lang } : {})
+        ...(state.lang ? { lang: state.lang } : {}),
+        country:'BR'
       });
 
       const total = Number(data.totalItems || 0);
       state.total = total;
 
-      if(!data.items?.length){
+      const items = prioritizePortuguese(data.items || []);
+      if(!items.length){
         resultsEl.innerHTML = '';
         resultMetaEl.textContent = 'Nenhum resultado.';
-        renderPagination(0, PAGE_SIZE, 1);
+        renderPagination(0, PAGE_SIZE, 1, paginationEl, p => search(state.query, p));
         return;
       }
 
-      // Render cards
-      data.items.forEach(item => renderCard(item, resultsEl));
+      items.forEach(item => renderCard(item, resultsEl));
 
-      // Meta “Mostrando X–Y de N”
       const start = startIndex + 1;
-      const end = Math.min(total, startIndex + data.items.length);
+      const end = Math.min(total, startIndex + items.length);
       resultMetaEl.textContent = `Mostrando ${start}–${end} de ${total} resultado${total!==1?'s':''}.`;
 
-      // Paginação
-      renderPagination(total, PAGE_SIZE, page);
+      renderPagination(total, PAGE_SIZE, page, paginationEl, p => search(state.query, p));
 
-      // Scroll para topo ao paginar
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }catch(err){
       errEl.textContent = 'Erro ao buscar resultados. Verifique as rotas /api.';
@@ -304,11 +349,12 @@
     }
   }
 
-  function renderPagination(total, size, page){
-    paginationEl.innerHTML = '';
+  // ====== Paginação genérica ======
+  function renderPagination(total, size, page, container, goToPage){
+    container.innerHTML = '';
     const totalPages = Math.max(1, Math.ceil(total / size));
-    if (totalPages <= 1) { paginationEl.style.display='none'; return; }
-    paginationEl.style.display='flex';
+    if (totalPages <= 1) { container.style.display='none'; return; }
+    container.style.display='flex';
 
     const addBtn = (label, p, {disabled=false,current=false,aria='' }={})=>{
       const b = document.createElement('button');
@@ -318,19 +364,16 @@
       if (aria) b.setAttribute('aria-label', aria);
       if (current) b.setAttribute('aria-current','page');
       b.disabled = disabled;
-      if (!current && !disabled) b.addEventListener('click', ()=> gotoPage(p));
-      paginationEl.appendChild(b);
+      if (!current && !disabled) b.addEventListener('click', ()=> goToPage(p));
+      container.appendChild(b);
     };
-    const addEllipsis = ()=>{ const s=document.createElement('span'); s.className='page-ellipsis'; s.textContent='…'; paginationEl.appendChild(s); };
+    const addEllipsis = ()=>{ const s=document.createElement('span'); s.className='page-ellipsis'; s.textContent='…'; container.appendChild(s); };
 
-    // Prev
     addBtn('‹ Anterior', Math.max(1,page-1), { disabled: page===1, aria:'Página anterior' });
 
-    // Números
     if (totalPages <= FULL_RENDER_LIMIT){
       for (let i=1;i<=totalPages;i++) addBtn(String(i), i, { current: i===page, aria:`Ir para página ${i}` });
     } else {
-      // Condensado (primeira, últimas e janela ao redor da atual)
       addBtn('1', 1, { current: page===1 });
       if (page > 3) addEllipsis();
       const start = Math.max(2, page-2);
@@ -340,11 +383,8 @@
       addBtn(String(totalPages), totalPages, { current: page===totalPages });
     }
 
-    // Next
     addBtn('Próxima ›', Math.min(totalPages,page+1), { disabled: page===totalPages, aria:'Próxima página' });
   }
-
-  function gotoPage(p){ search(state.query, p); }
 
   function randomPick(){
     const seeds = ['fantasia','romance','ficção científica','história','programação','filosofia','poesia','biografia','terror'];
@@ -353,13 +393,13 @@
   }
 
   // ====== Cards & Modal ======
-  function renderCard(item, container = resultsEl){
+  function renderCard(item, container){
     const v = item.volumeInfo || {};
     const id = item.id;
     const thumb = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || 'https://via.placeholder.com/300x450?text=Sem+Capa';
     const title = v.title || 'Sem título';
     const authors = v.authors?.join(', ') || 'Autor desconhecido';
-    const cats = v.categories?.slice(0,3) || [];
+    const cats = v.categories?.slice(0,2) || [];
 
     const card = document.createElement('div');
     card.className = 'card';
@@ -485,7 +525,7 @@
   const setRating = (id, val) => { updateBookState(id, { rating: val }); renderRatingControl(id); };
 
   // ====== Init ======
-  loadTrending(); // mostra tendências imediatamente
+  loadTrending(); // tendências com paginação
 </script>
 </body>
 </html>
