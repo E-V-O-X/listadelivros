@@ -1,15 +1,14 @@
-// /api/book.js
 module.exports = async (req, res) => {
   try {
     const { id } = req.query || {};
     if (!id) return res.status(400).json({ error: 'Parâmetro id é obrigatório' });
-
     const apiKey = process.env.GOOGLE_BOOKS_KEY;
     if (!apiKey) return res.status(500).json({ error: 'GOOGLE_BOOKS_KEY não configurada' });
 
-    const url = `https://www.googleapis.com/books/v1/volumes/${id}?key=${apiKey}`;
+    const url = `https://www.googleapis.com/books/v1/volumes/${id}?key=${apiKey}&country=BR`;
     const r = await fetch(url);
     const data = await r.json();
+    if (!r.ok) return res.status(r.status).json({ error: data?.error?.message || 'Erro Google Books' });
 
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
     return res.status(200).json(data);
